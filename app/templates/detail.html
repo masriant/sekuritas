@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Detail Saham</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h2>📈 Grafik Saham: {{ kode }}</h2>
+
+<a href="/">⬅️ Kembali</a>
+
+<canvas id="chartDetail"></canvas>
+
+<script>
+const labels = {{ tanggal | tojson }};
+const dataHarga = {{ harga | tojson }};
+
+const ctx = document.getElementById('chartDetail').getContext('2d');
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Harga Penutupan',
+            data: dataHarga,
+            tension: 0.3
+        }]
+    }
+});
+</script>
+
+</body>
+</html>

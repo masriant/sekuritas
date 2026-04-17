@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Portfolio Saham</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h2>📊 Portfolio Saham</h2>
+
+<form method="POST" action="/tambah">
+    <input name="kode" placeholder="Kode Saham" required>
+    <input name="harga_beli" placeholder="Harga Beli" required>
+    <input name="harga_sekarang" placeholder="Harga Sekarang">
+    <input name="lot" placeholder="Lot" required>
+    <button type="submit">Tambah</button>
+</form>
+
+<br>
+<h3>📊 Ringkasan Portfolio</h3>
+
+<ul>
+    <li>Total Modal: Rp {{ "{:,}".format(total_modal) }}</li>
+    <li>Total Nilai Sekarang: Rp {{ "{:,}".format(total_nilai) }}</li>
+    <li>
+        Total Profit / Loss:
+        {% if total_pl >= 0 %}
+            <span style="color:green;">Rp {{ "{:,}".format(total_pl) }}</span>
+        {% else %}
+            <span style="color:red;">Rp {{ "{:,}".format(total_pl) }}</span>
+        {% endif %}
+    </li>
+</ul>
+
+<table border="1" cellpadding="5">
+    <tr>
+        <th>KODE</th>
+        <th>Current Price</th>
+        <th>Avg Price</th>
+        <th>Bal Lot</th>
+        <th>Invested</th>
+        <th>P&L</th>
+        <th>%</th>
+        <th>Analisa</th>
+    </tr>
+
+    {% for s in saham %}
+    <tr>
+        <td>
+            <a href="/saham/{{ s.kode }}">
+                {{ s.kode }}
+            </a>
+        </td>
+        <td>{{ "{:,}".format(s.current or 0) }}</td>
+        <td>{{ "{:,}".format(s.avg or 0) }}</td>
+        <td>{{ "{:,}".format(s.bal_lot or 0) }}</td>
+        <td>Rp {{ "{:,}".format(s.invested or 0) }}</td>
+
+        <!-- P&L -->
+        <td>
+            {% if s.pl >= 0 %}
+                <span style="color:green;">
+                    Rp {{ "{:,}".format(s.pl) }}
+                </span>
+            {% else %}
+                <span style="color:red;">
+                    Rp {{ "{:,}".format(s.pl) }}
+                </span>
+            {% endif %}
+        </td>
+
+        <!-- % -->
+        <td>
+            {% if s.persen >= 0 %}
+                <span style="color:green;">
+                    {{ s.persen }}%
+                </span>
+            {% else %}
+                <span style="color:red;">
+                    {{ s.persen or 0 }}%
+                </span>
+            {% endif %}
+        </td>
+
+        <!-- % -->
+        <td>
+            {% if s.analisa == "BUY" %}
+                <span style="color:blue;">{{ s.analisa }}</span>
+            {% elif s.analisa == "SELL" %}
+                <span style="color:green;">{{ s.analisa }}</span>
+            {% else %}
+                <span style="color:orange;">{{ s.analisa }}</span>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<h3>📊 Total Portfolio</h3>
+<canvas id="chartTotal"></canvas>
+
+<h3>📊 Grafik Modal (Invested)</h3>
+<canvas id="chartModal"></canvas>
+
+<h3>📈 Grafik Harga Saham</h3>
+<canvas id="chartHarga"></canvas>
+
+<!-- # Grafik Total Portfolio -->
+<script>
+const ctxTotal = document.getElementById('chartTotal').getContext('2d');
+
+new Chart(ctxTotal, {
+    type: 'bar',
+    data: {
+        labels: ['Modal', 'Nilai Sekarang'],
+        datasets: [{
+            label: 'Total Portfolio',
+            data: [
+                {{ total_modal or 0 }},
+                {{ total_nilai or 0 }}
+            ]
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                ticks: {
+                    callback: function(value) {
+                        return 'Rp ' + value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+
+<!-- # Grafik Modal (Invested) -->
+<script>
+    const labelsModal = [
+        {% for s in saham %}
+            "{{ s.kode }}",
+        {% endfor %}
+    ];
+
+    const dataModal = [
+        {% for s in saham %}
+            {{ s.invested or 0 }},
+        {% endfor %}
+    ];
+
+    const ctxModal = document.getElementById('chartModal').getContext('2d');
+
+    new Chart(ctxModal, {
+        type: 'bar',
+        data: {
+            labels: labelsModal,
+            datasets: [{
+                label: 'Total Modal (Rp)',
+                data: dataModal
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(value) {
+                            return 'Rp ' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+<!-- # Grafik Harga Saham -->
+<script>
+    const labels = [
+        {% for s in saham %}
+            "{{ s.kode }}",
+        {% endfor %}
+    ];
+
+    const dataHarga = [
+        {% for s in saham %}
+            {{ s.current or 0 }},
+        {% endfor %}
+    ];
+
+const ctx = document.getElementById('chartHarga').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Harga Sekarang',
+                data: dataHarga
+            }]
+        }
+    });
+</script>
+
+</body>
+</html>
