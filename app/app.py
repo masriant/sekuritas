@@ -18,7 +18,7 @@ def connect_db():
             return db
         except:
             print("⏳ Menunggu MySQL...")
-            time.sleep(3)
+            time.sleep(5)
 
 db = connect_db()
 
@@ -41,25 +41,11 @@ def index():
     total_modal = 0
     total_nilai = 0
 
+    # ✅ HITUNG SEMUA DATA DULU
     for row in data:
         kode = row['kode']
 
-        # ambil harga real-time
         harga_real = get_harga_saham(kode)
-
-        # update ke DB
-        # cursor_update = db.cursor()
-        # cursor_update.execute(
-        #     "UPDATE saham SET harga_sekarang=%s WHERE kode=%s",
-        #     (harga_real, kode)
-        # )
-        # db.commit()
-        # cursor_update.close()
-
-        # ✔ hanya pakai di memory ❗ JANGAN update DB
-        row['harga_sekarang'] = harga_real
-
-        # pakai harga terbaru
         row['harga_sekarang'] = harga_real
 
         avg = row.get('harga_beli') or 0
@@ -80,6 +66,7 @@ def index():
         else:
             analisa = "HOLD"
 
+        # simpan ke row
         row['avg'] = avg
         row['current'] = current
         row['bal_lot'] = lot
@@ -88,14 +75,27 @@ def index():
         row['persen'] = round(persen, 2)
         row['analisa'] = analisa
 
+        # SCORING
+        score = row['persen']
+        if analisa == "BUY":
+            score += 5
+        elif analisa == "SELL":
+            score -= 5
+
+        row['score'] = score
+
         total_modal += invested
         total_nilai += nilai
 
     total_pl = total_nilai - total_modal
 
+    # ✅ BARU RANKING DI SINI
+    ranking = sorted(data, key=lambda x: x['score'], reverse=True)
+
     return render_template(
         "index.html",
         saham=data,
+        ranking=ranking,
         total_modal=total_modal,
         total_nilai=total_nilai,
         total_pl=total_pl
@@ -106,19 +106,64 @@ def index():
 def detail_saham(kode):
     ticker = yf.Ticker(kode + ".JK")
 
-    # ambil data 1 bulan
-    hist = ticker.history(period="1mo")
+    hist = ticker.history(period="3mo")
 
-    tanggal = list(hist.index.strftime('%Y-%m-%d'))
-    harga = list(hist['Close'])
+    hist = hist.reset_index()
+
+    tanggal = hist['Date'].dt.strftime('%Y-%m-%d').tolist()
+    open_ = hist['Open'].tolist()
+    high = hist['High'].tolist()
+    low = hist['Low'].tolist()
+    close = hist['Close'].tolist()
+    volume = hist['Volume'].tolist()
+
+    # MA20
+    ma20 = hist['Close'].rolling(window=20).mean().fillna(0).tolist()
+
+    # RSI
+    delta = hist['Close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    rsi = rsi.fillna(0).tolist()
+
+    # ambil data terakhir
+    last_close = close[-1] if close else 0
+    last_ma20 = ma20[-1] if ma20 else 0
+    last_rsi = rsi[-1] if rsi else 0
+
+    # SIGNAL LOGIC
+    if last_rsi < 30 and last_close > last_ma20:
+        signal = "STRONG BUY"
+    elif last_rsi < 30:
+        signal = "BUY"
+    elif last_rsi > 70 and last_close < last_ma20:
+        signal = "STRONG SELL"
+    elif last_rsi > 70:
+        signal = "SELL"
+    else:
+        signal = "HOLD"
 
     return render_template(
         "detail.html",
         kode=kode,
         tanggal=tanggal,
-        harga=harga
+        open=open_,
+        high=high,
+        low=low,
+        close=close,
+        volume=volume,
+        ma20=ma20,
+        rsi=rsi,
+        last_close=last_close,
+        last_ma20=last_ma20,
+        last_rsi=round(last_rsi, 2),
+        signal=signal
     )
-    
+
+
 
 @app.route("/tambah", methods=["POST"])
 def tambah():
@@ -135,9 +180,91 @@ def tambah():
     ))
 
     db.commit()
+    
+    saham_id = cursor.lastrowid
+
+    # LOG
+    cursor.execute("""
+        INSERT INTO saham_log (saham_id, aksi, kode, harga_beli, harga_sekarang, lot)
+        VALUES (%s, 'INSERT', %s, %s, %s, %s)
+    """, (saham_id, request.form['kode'], request.form['harga_beli'],
+          request.form['harga_sekarang'], request.form['lot']))
+
+    db.commit()
     cursor.close()
 
     return redirect("/")
+    
+@app.route("/hapus/<int:id>")
+def hapus(id):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM saham WHERE id=%s", (id,))
+    old = cursor.fetchone()
+
+    # LOG sebelum delete
+    cursor.execute("""
+        INSERT INTO saham_log (saham_id, aksi, kode, harga_beli, harga_sekarang, lot)
+        VALUES (%s, 'DELETE', %s, %s, %s, %s)
+    """, (id, old['kode'], old['harga_beli'], old['harga_sekarang'], old['lot']))
+
+    # delete
+    cursor.execute("DELETE FROM saham WHERE id=%s", (id,))
+    db.commit()
+    cursor.close()
+
+    return redirect("/")
+    
+@app.route("/edit/<int:id>")
+def edit(id):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM saham WHERE id=%s", (id,))
+    data = cursor.fetchone()
+    cursor.close()
+
+    return render_template("edit.html", s=data)
+    
+@app.route("/update/<int:id>", methods=["POST"])
+def update(id):
+    # ambil data lama
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM saham WHERE id=%s", (id,))
+    old = cursor.fetchone()
+
+    # update
+    cursor.execute("""
+        UPDATE saham
+        SET kode=%s, harga_beli=%s, harga_sekarang=%s, lot=%s
+        WHERE id=%s
+    """, (
+        request.form['kode'],
+        request.form['harga_beli'],
+        request.form['harga_sekarang'],
+        request.form['lot'],
+        id
+    ))
+
+    db.commit()
+
+    # LOG
+    cursor.execute("""
+        INSERT INTO saham_log (saham_id, aksi, kode, harga_beli, harga_sekarang, lot)
+        VALUES (%s, 'UPDATE', %s, %s, %s, %s)
+    """, (id, request.form['kode'], request.form['harga_beli'],
+          request.form['harga_sekarang'], request.form['lot']))
+
+    db.commit()
+    cursor.close()
+
+    return redirect("/")
+    
+@app.route("/log")
+def log():
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM saham_log ORDER BY created_at DESC")
+    data = cursor.fetchall()
+    cursor.close()
+
+    return render_template("log.html", logs=data)
 
 
 # ⬇️ WAJIB LANGSUNG JALAN
