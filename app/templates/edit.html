@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Saham</title>
+</head>
+<body>
+
+<h2>✏️ Edit Kepemilikan Saham</h2>
+<p>
+<a href="/">⬅️ Kembali</a>
+</p>
+<form method="POST" action="/update/{{ s.id }}">
+    <p>Kode: <input name="kode" value="{{ s.kode }}"></p>
+    <p>Harga Beli: <input name="harga_beli" value="{{ s.harga_beli }}" autofocus></p>
+    <p>Harga Sekarang: <input name="harga_sekarang" value="{{ s.harga_sekarang }}"></p>
+    <p>Lot: <input name="lot" value="{{ s.lot }}"></p>
+
+    <button type="submit">Update</button>
+</form>
+
+</body>
+</html>

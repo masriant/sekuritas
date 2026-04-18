@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Histori Saham</title>
+</head>
+<body>
+
+<h2>📜 Histori Perubahan Saham</h2>
+<p>
+<a href="/">⬅️ Kembali</a>
+</p>
+<table border="1">
+<tr>
+    <th>Waktu</th>
+    <th>Aksi</th>
+    <th>Kode</th>
+    <th>Harga Beli</th>
+    <th>Harga Sekarang</th>
+    <th>Lot</th>
+</tr>
+
+{% for l in logs %}
+<tr>
+    <td>{{ "{:,}".format(l.created_at) or 0 }}</td>
+    <td>{{ l.aksi }}</td>
+    <td>{{ l.kode }}</td>
+    <td>{{ "{:,}".format(l.harga_beli) or 0 }}</td>
+    <td>{{ "{:,}".format(l.harga_sekarang) or 0 }}</td>
+    <td>{{ "{:,}".format(l.lot) or 0 }}</td>
+</tr>
+{% endfor %}
+</table>
+
+</body>
+</html>

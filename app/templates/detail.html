@@ -2,34 +2,36 @@
 <html>
 <head>
     <title>Detail Saham</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<h2>📈 Grafik Saham: {{ kode }}</h2>
-
+<h2>📊 Detail Saham: {{ kode }}</h2>
+<p>
 <a href="/">⬅️ Kembali</a>
+</p>
+<h3>Data Terakhir</h3>
 
-<canvas id="chartDetail"></canvas>
+<table border="1">
+    <tr>
+        <th>Tanggal</th>
+        <th>Open</th>
+        <th>High</th>
+        <th>Low</th>
+        <th>Close</th>
+        <th>Volume</th>
+    </tr>
 
-<script>
-const labels = {{ tanggal | tojson }};
-const dataHarga = {{ harga | tojson }};
-
-const ctx = document.getElementById('chartDetail').getContext('2d');
-
-new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: labels,
-        datasets: [{
-            label: 'Harga Penutupan',
-            data: dataHarga,
-            tension: 0.3
-        }]
-    }
-});
-</script>
+    {% for i in range(tanggal|length) %}
+    <tr>
+        <td>{{ tanggal[i] }}</td>
+        <td>{{ "{:,}".format(open[i]) or 0 }}</td>
+        <td>{{ "{:,}".format(high[i]) or 0 }}</td>
+        <td>{{ "{:,}".format(low[i]) or 0 }}</td>
+        <td>{{ "{:,}".format(close[i]) or 0 }}</td>
+        <td>{{ "{:,}".format(volume[i]) or 0 }}</td>
+    </tr>
+    {% endfor %}
+</table>
 
 </body>
 </html>
