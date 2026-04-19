@@ -10,14 +10,15 @@
 
 <form method="POST" action="/tambah">
     <input name="kode" placeholder="Kode Saham" required autofocus>
-    <input name="harga_beli" placeholder="Harga Beli" required>
-    <input name="lot" placeholder="Lot" required>
+    <input name="lot" placeholder="Jumlah Lot" required>
+	<input name="harga_beli" placeholder="Harga Beli" required>
 	<input name="harga_sekarang" placeholder="Harga Sekarang">
     
     <button type="submit">Tambah</button>
 </form>
 
 <h2>🏆 Ranking Saham Terbaik</h2>
+<p>Login sebagai: {{ session.user }}</p>
 
 <p>Total ranking: {{ ranking|length }}</p>
 
@@ -27,10 +28,11 @@
     <th>Kode</th>
     <th>Score</th>
     <th>%</th>
+	<th>Price</th>
     <th>Signal</th>
 </tr>
 
-{% for s in ranking[:5] %}
+{% for s in ranking[:10] %}
 <tr>
     <td>{{ loop.index }}</td>
     <td>
@@ -46,6 +48,7 @@
             <span style="color:red;">{{ s.persen }}%</span>
         {% endif %}
     </td>
+	<td>{{ "{:,}".format(s.current or 0) }}</td>
     <td>
         {% if s.analisa == "BUY" %}
             <span style="color:blue;">BUY</span>
@@ -65,7 +68,7 @@
 
 <br>
 <h3>📊 Ringkasan Portfolio</h3>
-<p>Login sebagai: {{ session.user }}</p>
+
 
 <ul>
     <li><h3>Total Modal: Rp {{ "{:,}".format(total_modal  or 0) }} </h3></li>
@@ -84,7 +87,7 @@
     <tr>
 		<th>Aksi</th>
 		<th>Updated</th>
-        <th>KODE</th>
+        <th>Stock</th>
         <th>Current Price</th>
         <th>Avg Price</th>
         <th>Bal Lot</th>

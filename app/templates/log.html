@@ -21,12 +21,12 @@
 
 {% for l in logs %}
 <tr>
-    <td>{{ "{:,}".format(l.created_at) or 0 }}</td>
+    <td>{{ l.created_at }}</td>
     <td>{{ l.aksi }}</td>
     <td>{{ l.kode }}</td>
-    <td>{{ "{:,}".format(l.harga_beli) or 0 }}</td>
-    <td>{{ "{:,}".format(l.harga_sekarang) or 0 }}</td>
-    <td>{{ "{:,}".format(l.lot) or 0 }}</td>
+    <td>{{ "{:,}".format(l.harga_beli or 00) }}</td>
+    <td>{{ "{:,}".format(l.harga_sekarang or 0) }}</td>
+    <td>{{ "{:,}".format(l.lot or 0) }}</td>
 </tr>
 {% endfor %}
 </table>

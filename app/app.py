@@ -122,7 +122,9 @@ def index():
     total_pl = total_nilai - total_modal
 
     # ✅ BARU RANKING DI SINI
-    ranking = sorted(data, key=lambda x: x['score'], reverse=True)
+    # ranking = sorted(data, key=lambda x: x['score'], reverse=True)
+
+    ranking = sorted(data, key=lambda x: x.get('score', 0), reverse=True)
 
     return render_template(
         "index.html",
