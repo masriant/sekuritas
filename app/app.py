@@ -1,7 +1,8 @@
 from flask import Flask, request, redirect, render_template
 import mysql.connector
-import time
-import yfinance as yf
+from services.market import get_price
+from services.technical import analyze
+from models.repo import get_all_saham
 
 
 app = Flask(__name__)
@@ -31,57 +32,60 @@ def get_db():
         database="portfolio"
     )
 
-def get_harga_saham(kode):
-    try:
-        ticker = yf.Ticker(kode + ".JK")
-        data = ticker.history(period="1d")
-        if data.empty:
-            return 0
-        return int(data['Close'].iloc[-1])
-    except:
-        return 0
+# def get_harga_saham(kode):
+#     try:
+#         ticker = yf.Ticker(kode + ".JK")
+#         data = ticker.history(period="1d")
+#         if data.empty:
+#             return 0
+#         return int(data['Close'].iloc[-1])
+#     except:
+#         return 0
 
-def get_technical_score(kode):
-    try:
-        ticker = yf.Ticker(kode + ".JK")
-        hist = ticker.history(period="3mo")
+# def get_technical_score(kode):
+#     try:
+#         ticker = yf.Ticker(kode + ".JK")
+#         hist = ticker.history(period="3mo")
 
-        if hist.empty:
-            return 0, "NO DATA"
+#         if hist.empty:
+#             return 0, "NO DATA"
 
-        # MA20
-        hist['MA20'] = hist['Close'].rolling(20).mean()
+#         # MA20
+#         hist['MA20'] = hist['Close'].rolling(20).mean()
 
-        # RSI
-        delta = hist['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-        rs = gain / loss
-        hist['RSI'] = 100 - (100 / (1 + rs))
+#         # RSI
+#         delta = hist['Close'].diff()
+#         gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+#         loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+#         rs = gain / loss
+#         hist['RSI'] = 100 - (100 / (1 + rs))
 
-        last = hist.iloc[-1]
+#         last = hist.iloc[-1]
 
-        score = 0
-        signal = "HOLD"
+#         score = 0
+#         signal = "HOLD"
 
-        # RSI logic
-        if last['RSI'] < 30:
-            score += 10
-            signal = "BUY"
-        elif last['RSI'] > 70:
-            score -= 10
-            signal = "SELL"
+#         # RSI logic
+#         if last['RSI'] < 30:
+#             score += 10
+#             signal = "BUY"
+#         elif last['RSI'] > 70:
+#             score -= 10
+#             signal = "SELL"
 
-        # MA20 logic
-        if last['Close'] > last['MA20']:
-            score += 5
-        else:
-            score -= 5
+#         # MA20 logic
+#         if last['Close'] > last['MA20']:
+#             score += 5
+#         else:
+#             score -= 5
 
-        return score, signal
+#         return score, signal
 
-    except:
-        return 0, "ERROR"
+#     except:
+#         return 0, "ERROR"
+
+
+
 
 
 from flask import session
@@ -97,7 +101,7 @@ def index():
     cursor.execute("SELECT * FROM saham")
     data = cursor.fetchall()
     cursor.close()
-
+    db.close()
     total_modal = 0
     total_nilai = 0
 
@@ -185,7 +189,7 @@ def index():
 
     if not best_buy:
         best_buy = ranking[:3]
-
+    
 
     return render_template(
         "index.html",
@@ -290,7 +294,7 @@ def tambah():
 
     db.commit()
     cursor.close()
-
+    db.close()
     return redirect("/")
     
 @app.route("/hapus/<int:id>")
@@ -310,7 +314,7 @@ def hapus(id):
     cursor.execute("DELETE FROM saham WHERE id=%s", (id,))
     db.commit()
     cursor.close()
-
+    db.close()
     return redirect("/")
     
 @app.route("/edit/<int:id>")
@@ -320,7 +324,7 @@ def edit(id):
     cursor.execute("SELECT * FROM saham WHERE id=%s", (id,))
     data = cursor.fetchone()
     cursor.close()
-
+    db.close()
     return render_template("edit.html", s=data)
     
 @app.route("/update/<int:id>", methods=["POST"])
@@ -355,7 +359,7 @@ def update(id):
 
     db.commit()
     cursor.close()
-
+    db.close()
     return redirect("/")
     
 @app.route("/log")
@@ -365,7 +369,7 @@ def log():
     cursor.execute("SELECT * FROM saham_log ORDER BY created_at DESC")
     data = cursor.fetchall()
     cursor.close()
-
+    db.close()
     return render_template("log.html", logs=data)
 
 @app.route("/login", methods=["GET", "POST"])
@@ -379,6 +383,7 @@ def login():
         cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
         user = cursor.fetchone()
         cursor.close()
+        db.close()
 
         if user:
             session['user'] = user['username']
@@ -393,6 +398,17 @@ def logout():
     session.clear()
     return redirect("/login")
     
+
+from services.scanner import scan_market
+
+@app.route("/scanner")
+def scanner():
+    if 'user' not in session:
+        return redirect("/login")
+
+    data = scan_market()
+    return render_template("scanner.html", data=data)
+
 
 import pandas as pd
 
