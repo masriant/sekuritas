@@ -3,7 +3,9 @@ import mysql.connector
 import time
 import yfinance as yf
 
+
 app = Flask(__name__)
+app.secret_key = "secret123"
 
 def connect_db():
     while True:
@@ -20,19 +22,34 @@ def connect_db():
             print("⏳ Menunggu MySQL...")
             time.sleep(5)
 
-db = connect_db()
+# db = connect_db()
+def get_db():
+    return mysql.connector.connect(
+        host="db",
+        user="root",
+        password="root123",
+        database="portfolio"
+    )
 
 def get_harga_saham(kode):
     try:
-        ticker = yf.Ticker(kode + ".JK")  # .JK untuk saham Indonesia
+        ticker = yf.Ticker(kode + ".JK")
         data = ticker.history(period="1d")
-        harga = data['Close'].iloc[-1]
-        return int(harga)
+        if data.empty:
+            return 0
+        return int(data['Close'].iloc[-1])
     except:
         return 0
 
+from flask import session
+
 @app.route("/")
 def index():
+    if 'user' not in session:
+        return redirect("/login")
+    
+    # cursor = db.cursor(dictionary=True)
+    db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT * FROM saham")
     data = cursor.fetchall()
@@ -77,12 +94,27 @@ def index():
 
         # SCORING
         score = row['persen']
+
         if analisa == "BUY":
             score += 5
         elif analisa == "SELL":
             score -= 5
 
-        row['score'] = score
+        # bonus profit besar
+        if row['persen'] > 20:
+            score += 10
+
+        # penalti rugi besar
+        if row['persen'] < -10:
+            score -= 10
+
+        # trend
+        if row['current'] > row['avg']:
+            score += 3
+        else:
+            score -= 2
+
+        row['score'] = round(score, 2)
 
         total_modal += invested
         total_nilai += nilai
@@ -167,7 +199,8 @@ def detail_saham(kode):
 
 @app.route("/tambah", methods=["POST"])
 def tambah():
-    cursor = db.cursor()
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
 
     cursor.execute("""
         INSERT INTO saham (kode, harga_beli, harga_sekarang, lot)
@@ -197,6 +230,7 @@ def tambah():
     
 @app.route("/hapus/<int:id>")
 def hapus(id):
+    db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT * FROM saham WHERE id=%s", (id,))
     old = cursor.fetchone()
@@ -216,6 +250,7 @@ def hapus(id):
     
 @app.route("/edit/<int:id>")
 def edit(id):
+    db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT * FROM saham WHERE id=%s", (id,))
     data = cursor.fetchone()
@@ -226,6 +261,7 @@ def edit(id):
 @app.route("/update/<int:id>", methods=["POST"])
 def update(id):
     # ambil data lama
+    db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT * FROM saham WHERE id=%s", (id,))
     old = cursor.fetchone()
@@ -259,12 +295,108 @@ def update(id):
     
 @app.route("/log")
 def log():
+    db = get_db()
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT * FROM saham_log ORDER BY created_at DESC")
     data = cursor.fetchall()
     cursor.close()
 
     return render_template("log.html", logs=data)
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form['username']
+        password = request.form['password']
+
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
+        user = cursor.fetchone()
+        cursor.close()
+
+        if user:
+            session['user'] = user['username']
+            return redirect("/")
+        else:
+            return render_template("login.html", error="Login gagal")
+
+    return render_template("login.html")
+    
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+    
+
+import pandas as pd
+
+@app.route("/import", methods=["GET", "POST"])
+def import_excel():
+    if request.method == "POST":
+        file = request.files['file']
+        df = pd.read_excel(file)
+
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+
+        success = 0
+        failed = 0
+        errors = []
+
+        for i, row in df.iterrows():
+            try:
+                kode = str(row.get('kode', '')).strip().upper()
+                harga_beli = int(row.get('harga_beli', 0))
+                harga_sekarang = int(row.get('harga_sekarang', 0))
+                lot = int(row.get('lot', 0))
+
+                # ✅ VALIDASI
+                if not kode:
+                    raise Exception("Kode kosong")
+
+                if harga_beli <= 0:
+                    raise Exception("Harga beli tidak valid")
+
+                if lot <= 0:
+                    raise Exception("Lot tidak valid")
+
+                # 🔍 CEK DUPLIKAT
+                cursor.execute("SELECT * FROM saham WHERE kode=%s", (kode,))
+                existing = cursor.fetchone()
+
+                if existing:
+                    # 🔄 UPDATE jika sudah ada
+                    cursor.execute("""
+                        UPDATE saham
+                        SET harga_beli=%s, harga_sekarang=%s, lot=%s
+                        WHERE kode=%s
+                    """, (harga_beli, harga_sekarang, lot, kode))
+                else:
+                    # ➕ INSERT baru
+                    cursor.execute("""
+                        INSERT INTO saham (kode, harga_beli, harga_sekarang, lot)
+                        VALUES (%s, %s, %s, %s)
+                    """, (kode, harga_beli, harga_sekarang, lot))
+
+                db.commit()
+                success += 1
+
+            except Exception as e:
+                failed += 1
+                errors.append(f"Baris {i+1}: {str(e)}")
+
+        cursor.close()
+
+        return render_template(
+            "import_result.html",
+            success=success,
+            failed=failed,
+            errors=errors
+        )
+
+    return render_template("import.html")
+    
 
 
 # ⬇️ WAJIB LANGSUNG JALAN

@@ -17,8 +17,55 @@
     <button type="submit">Tambah</button>
 </form>
 
+<h2>🏆 Ranking Saham Terbaik</h2>
+
+<p>Total ranking: {{ ranking|length }}</p>
+
+<table border="1" cellpadding="5">
+<tr>
+    <th>Rank</th>
+    <th>Kode</th>
+    <th>Score</th>
+    <th>%</th>
+    <th>Signal</th>
+</tr>
+
+{% for s in ranking[:5] %}
+<tr>
+    <td>{{ loop.index }}</td>
+    <td>
+        <strong><a href="/saham/{{ s.kode }}">
+            {{ s.kode }}
+        </a></strong>
+    </td>
+    <td>{{ s.score }}</td>
+    <td>
+        {% if s.persen >= 0 %}
+            <span style="color:green;">{{ s.persen }}%</span>
+        {% else %}
+            <span style="color:red;">{{ s.persen }}%</span>
+        {% endif %}
+    </td>
+    <td>
+        {% if s.analisa == "BUY" %}
+            <span style="color:blue;">BUY</span>
+        {% elif s.analisa == "SELL" %}
+            <span style="color:red;">SELL</span>
+        {% else %}
+            <span style="color:orange;">HOLD</span>
+        {% endif %}
+    </td>
+</tr>
+{% else %}
+<tr>
+    <td colspan="5">Tidak ada data ranking</td>
+</tr>
+{% endfor %}
+</table>
+
 <br>
 <h3>📊 Ringkasan Portfolio</h3>
+<p>Login sebagai: {{ session.user }}</p>
 
 <ul>
     <li><h3>Total Modal: Rp {{ "{:,}".format(total_modal  or 0) }} </h3></li>
@@ -109,7 +156,10 @@
 </table>
 
 <h3>📊 Total Portfolio</h3>
-<p><a href="/log">📜 Lihat Histori</a></p>
+<p><a href="/log">📜 Lihat Histori</a> | 
+<a href="/import">📥 Import Excel</a> |
+<a href="/log">📜 Log</a> |
+<a href="/logout">🚪 Logout</a></p>
 <canvas id="chartTotal"></canvas>
 
 <h3>📊 Grafik Modal (Invested)</h3>
