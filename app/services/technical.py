@@ -1,3 +1,4 @@
+# services/technical.py
 import yfinance as yf
 import numpy as np
 
@@ -5,15 +6,15 @@ def analyze(kode):
     try:
         hist = yf.Ticker(kode + ".JK").history(period="3mo")
 
-        if hist.empty or len(hist) < 20:
+        if hist.empty or len(hist) < 30:
             return 0, "NO DATA"
 
-        # MA20
+        # MA20 & MA50
         hist['MA20'] = hist['Close'].rolling(20).mean()
+        hist['MA50'] = hist['Close'].rolling(50).mean()
 
-        # RSI (lebih stabil)
+        # RSI
         delta = hist['Close'].diff()
-
         gain = delta.clip(lower=0)
         loss = -delta.clip(upper=0)
 
@@ -31,19 +32,45 @@ def analyze(kode):
         score = 0
         signal = "HOLD"
 
-        # RSI signal
-        if last['RSI'] < 30:
-            score += 10
+        # ========================
+        # 🔥 RSI + TREND COMBINATION
+        # ========================
+
+        # BUY kuat
+        if last['RSI'] < 30 and last['Close'] > last['MA20']:
+            score += 15
+            signal = "STRONG BUY"
+
+        # BUY biasa
+        elif last['RSI'] < 30:
+            score += 8
             signal = "BUY"
+
+        # SELL kuat
+        elif last['RSI'] > 70 and last['Close'] < last['MA20']:
+            score -= 15
+            signal = "STRONG SELL"
+
+        # SELL biasa
         elif last['RSI'] > 70:
-            score -= 10
+            score -= 8
             signal = "SELL"
 
-        # Trend MA20
+        # ========================
+        # 📈 TREND FILTER
+        # ========================
+
         if last['Close'] > last['MA20']:
             score += 5
         else:
             score -= 5
+
+        # trend besar
+        if not np.isnan(last['MA50']):
+            if last['MA20'] > last['MA50']:
+                score += 5
+            else:
+                score -= 5
 
         return int(score), signal
 
