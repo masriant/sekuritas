@@ -157,6 +157,16 @@ def index():
         else:
             score -= 2
 
+        # 🔥 TECHNICAL ANALYSIS
+        tech_score, tech_signal = get_technical_score(kode)
+
+        score += tech_score
+
+        if tech_signal != "HOLD":
+            analisa = tech_signal
+
+        # simpan
+        row['analisa'] = analisa
         row['score'] = round(score, 2)
 
         total_modal += invested
@@ -171,16 +181,11 @@ def index():
 
     ranking = sorted(data, key=lambda x: x.get('score', 0), reverse=True)
     
-    # 🎯 ambil rekomendasi BUY terbaik
-    best_buy = [s for s in ranking if s['analisa'] == "BUY"][:3]
-    
-    tech_score, tech_signal = get_technical_score(kode)
+    best_buy = [s for s in ranking if s['analisa'] == "BUY"]
 
-    score += tech_score
+    if not best_buy:
+        best_buy = ranking[:3]
 
-    # override analisa kalau lebih kuat
-    if tech_signal != "HOLD":
-        analisa = tech_signal
 
     return render_template(
         "index.html",
@@ -447,7 +452,7 @@ def import_excel():
                 errors.append(f"Baris {i+1}: {str(e)}")
 
         cursor.close()
-
+        db.close()
         return render_template(
             "import_result.html",
             success=success,
