@@ -1,0 +1,19 @@
+<h2>📡 Market Scanner</h2>
+
+<table border="1">
+<tr>
+    <th>Kode</th>
+    <th>Harga</th>
+    <th>Score</th>
+    <th>Signal</th>
+</tr>
+
+{% for s in data %}
+<tr>
+    <td>{{ s.kode }}</td>
+    <td>{{ s.harga }}</td>
+    <td>{{ s.score }}</td>
+    <td>{{ s.signal }}</td>
+</tr>
+{% endfor %}
+</table>

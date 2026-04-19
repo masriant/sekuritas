@@ -1,333 +1,343 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Portfolio Saham</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
 
-<h2>📊 Portfolio Saham</h2>
+    <h2>📊 Portfolio Saham</h2>
 
-<form method="POST" action="/tambah">
-    <input name="kode" placeholder="Kode Saham" required autofocus>
-    <input name="lot" placeholder="Jumlah Lot" required>
-	<input name="harga_beli" placeholder="Harga Beli" required>
-	<input name="harga_sekarang" placeholder="Harga Sekarang">
-    
-    <button type="submit">Tambah</button>
-</form>
+    <form method="POST" action="/tambah">
+        <input name="kode" placeholder="Kode Saham" required autofocus>
+        <input name="lot" placeholder="Jumlah Lot" required>
+        <input name="harga_beli" placeholder="Harga Beli" required>
+        <input name="harga_sekarang" placeholder="Harga Sekarang">
 
-<h2>🏆 Ranking Saham Terbaik (Top 5)</h2>
-<p>Total data ranking: {{ ranking|length }}</p>
+        <button type="submit">Tambah</button>
+    </form>
 
-<table border="1" cellpadding="5">
-    <tr>
-        <th>Rank</th>
-        <th>Kode</th>
-        <th>Profit %</th>
-        <th>Score</th>
-        <th>Signal</th>
-    </tr>
+    <h2>🏆 Ranking Saham Terbaik (Top 5)</h2>
+    <p>Total data ranking: {{ ranking|length }}</p>
 
-    {% for s in ranking[:5] %}
-    <tr>
-        <td>{{ loop.index }}</td>
-        <td>
-            <a href="/saham/{{ s.kode }}"><strong>{{ s.kode }}</strong></a>
-        </td>
-        <td>
-            {% if s.persen >= 0 %}
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>Rank</th>
+            <th>Kode</th>
+            <th>Profit %</th>
+            <th>Score</th>
+            <th>Signal</th>
+        </tr>
+
+        {% for s in ranking[:5] %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+                <a href="/saham/{{ s.kode }}"><strong>{{ s.kode }}</strong></a>
+            </td>
+            <td>
+                {% if s.persen >= 0 %}
                 <span style="color:green;">{{ s.persen }}%</span>
-            {% else %}
+                {% else %}
                 <span style="color:red;">{{ s.persen }}%</span>
-            {% endif %}
-        </td>
-        <td><strong>{{ s.score }}</strong></td>
-        <td>
-            {% if s.analisa == "BUY" %}
+                {% endif %}
+            </td>
+            <td><strong>{{ s.score }}</strong></td>
+            <td>
+                {% if s.analisa == "BUY" %}
                 <span style="color:blue;">BUY</span>
-            {% elif s.analisa == "SELL" %}
+                {% elif s.analisa == "SELL" %}
                 <span style="color:red;">SELL</span>
-            {% else %}
+                {% else %}
                 <span style="color:orange;">HOLD</span>
-            {% endif %}
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
 
-<br>
-<h2>🚀 Rekomendasi Hari Ini: {{ best_buy|length }}</h2>
+    <br>
+    <h2>🚀 Rekomendasi Hari Ini: {{ best_buy|length }}</h2>
 
-<ul>
-{% for s in best_buy %}
-    <li>
-        🔥 <strong>{{ s.kode }}</strong> 
-        ({{ s.persen }}%) - {{ s.analisa }}
-    </li>
-{% endfor %}
-</ul>
-<br>
-<h2>🏆 Ranking Saham Terbaik</h2>
-<p>Login sebagai: {{ session.user }}</p>
+    <ul>
+        {% for s in best_buy %}
+        <li>
+            🔥 <strong>{{ s.kode }}</strong>
+            ({{ s.persen }}%) - {{ s.analisa }}
+        </li>
+        {% endfor %}
+    </ul>
+    <br>
+    <h2>🏆 Ranking Saham Terbaik</h2>
+    <p>Login sebagai: {{ session.user }}</p>
 
-<p>Total ranking: {{ ranking|length }}</p>
+    <p>Total ranking: {{ ranking|length }}</p>
 
-<table border="1" cellpadding="5">
-<tr>
-    <th>Rank</th>
-    <th>Kode</th>
-    <th>Score</th>
-    <th>%</th>
-	<th>Price</th>
-    <th>Signal</th>
-</tr>
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>Rank</th>
+            <th>Kode</th>
+            <th>Score</th>
+            <th>%</th>
+            <th>Price</th>
+            <th>Signal</th>
+        </tr>
 
-{% for s in ranking[:10] %}
-<tr>
-    <td>{{ loop.index }}</td>
-    <td>
-        <strong><a href="/saham/{{ s.kode }}">
-            {{ s.kode }}
-        </a></strong>
-    </td>
-    <td>{{ s.score }}</td>
-    <td>
-        {% if s.persen >= 0 %}
-            <span style="color:green;">{{ s.persen }}%</span>
+        {% for s in ranking[:10] %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+                <strong><a href="/saham/{{ s.kode }}">
+                        {{ s.kode }}
+                    </a></strong>
+            </td>
+            <td>{{ s.score }}</td>
+            <td>
+                {% if s.persen >= 0 %}
+                <span style="color:green;">{{ s.persen }}%</span>
+                {% else %}
+                <span style="color:red;">{{ s.persen }}%</span>
+                {% endif %}
+            </td>
+            <td>{{ "{:,}".format(s.current or 0) }}</td>
+            <td>
+                {% if s.analisa == "BUY" %}
+                <span style="color:blue;">BUY</span>
+                {% elif s.analisa == "SELL" %}
+                <span style="color:red;">SELL</span>
+                {% else %}
+                <span style="color:orange;">HOLD</span>
+                {% endif %}
+            </td>
+        </tr>
         {% else %}
-            <span style="color:red;">{{ s.persen }}%</span>
-        {% endif %}
-    </td>
-	<td>{{ "{:,}".format(s.current or 0) }}</td>
-    <td>
-        {% if s.analisa == "BUY" %}
-            <span style="color:blue;">BUY</span>
-        {% elif s.analisa == "SELL" %}
-            <span style="color:red;">SELL</span>
-        {% else %}
-            <span style="color:orange;">HOLD</span>
-        {% endif %}
-    </td>
-</tr>
-{% else %}
-<tr>
-    <td colspan="5">Tidak ada data ranking</td>
-</tr>
-{% endfor %}
-</table>
+        <tr>
+            <td colspan="5">Tidak ada data ranking</td>
+        </tr>
+        {% endfor %}
+    </table>
 
-<br>
-<h3>📊 Ringkasan Portfolio</h3>
+    <br>
+    <h3>📊 Ringkasan Portfolio</h3>
 
 
-<ul>
-    <li><h3>Total Modal: Rp {{ "{:,}".format(total_modal  or 0) }} </h3></li>
-    <li><h3>Total Nilai Sekarang: Rp {{ "{:,}".format(total_nilai) }} </h3></li>
-    <li><h3>
-        Total Profit / Loss:
-        {% if total_pl >= 0 %}
-            <span style="color:green;">Rp {{ "{:,}".format(total_pl or 0 ) }}</span>
-        {% else %}
-            <span style="color:red;">Rp {{ "{:,}".format(total_pl or 0) }}</span>
-        {% endif %} </h3>
-    </li>
-</ul>
+    <ul>
+        <li>
+            <h3>Total Modal: Rp {{ "{:,}".format(total_modal or 0) }} </h3>
+        </li>
+        <li>
+            <h3>Total Nilai Sekarang: Rp {{ "{:,}".format(total_nilai) }} </h3>
+        </li>
+        <li>
+            <h3>
+                Total Profit / Loss:
+                {% if total_pl >= 0 %}
+                <span style="color:green;">Rp {{ "{:,}".format(total_pl or 0 ) }}</span>
+                {% else %}
+                <span style="color:red;">Rp {{ "{:,}".format(total_pl or 0) }}</span>
+                {% endif %}
+            </h3>
+        </li>
+    </ul>
 
-<table border="1" cellpadding="5">
-    <tr>
-		<th>Aksi</th>
-		<th>Updated</th>
-        <th>Stock</th>
-        <th>Current Price</th>
-        <th>Avg Price</th>
-        <th>Bal Lot</th>
-        <th>Invested</th>
-        <th>P&L</th>
-        <th>%</th>
-		<th>📜 Tech Score</th>
-        <th>Analisa</th>
-		<th>Score</th>
-    </tr>
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>Aksi</th>
+            <th>Updated</th>
+            <th>Stock</th>
+            <th>Current Price</th>
+            <th>Avg Price</th>
+            <th>Bal Lot</th>
+            <th>Invested</th>
+            <th>P&L</th>
+            <th>%</th>
+            <th>📜 Tech Score</th>
+            <th>Analisa</th>
+            <th>Score</th>
+        </tr>
 
-    {% for s in saham %}
-    <tr>
-		<td>
-			<a href="/edit/{{ s.id }}">✏️ Edit</a> |
-			<a href="/hapus/{{ s.id }}" onclick="return confirm('Yakin hapus?')">🗑️ Hapus</a>
-		</td>
-		<td>{{ s.updated_at }}</td>
-        <td>
-            <strong><a href="/saham/{{ s.kode }}">
-                {{ s.kode }}
-            </a></strong>
-        </td>
-        <td>{{ "{:,}".format(s.current or 0) }}</td>
-        <td>{{ "{:,}".format(s.avg or 0) }}</td>
-        <td>{{ "{:,}".format(s.bal_lot or 0) }}</td>
-        <td>Rp {{ "{:,}".format(s.invested or 0) }}</td>
+        {% for s in saham %}
+        <tr>
+            <td>
+                <a href="/edit/{{ s.id }}">✏️ Edit</a> |
+                <a href="/hapus/{{ s.id }}" onclick="return confirm('Yakin hapus?')">🗑️ Hapus</a>
+            </td>
+            <td>{{ s.updated_at }}</td>
+            <td>
+                <strong><a href="/saham/{{ s.kode }}">
+                        {{ s.kode }}
+                    </a></strong>
+            </td>
+            <td>{{ "{:,}".format(s.current or 0) }}</td>
+            <td>{{ "{:,}".format(s.avg or 0) }}</td>
+            <td>{{ "{:,}".format(s.bal_lot or 0) }}</td>
+            <td>Rp {{ "{:,}".format(s.invested or 0) }}</td>
 
-        <!-- P&L -->
-        <td>
-            {% if s.pl >= 0 %}
+            <!-- P&L -->
+            <td>
+                {% if s.pl >= 0 %}
                 <span style="color:green;">
                     Rp {{ "{:,}".format(s.pl or 0) }}
                 </span>
-            {% else %}
+                {% else %}
                 <span style="color:red;">
                     Rp {{ "{:,}".format(s.pl or 0) }}
                 </span>
-            {% endif %}
-        </td>
+                {% endif %}
+            </td>
 
-        <!-- % -->
-        <td>
-            {% if s.persen >= 0 %}
+            <!-- % -->
+            <td>
+                {% if s.persen >= 0 %}
                 <span style="color:green;">
                     {{ s.persen or 0 }}%
                 </span>
-            {% else %}
+                {% else %}
                 <span style="color:red;">
                     {{ s.persen or 0 }}%
                 </span>
-            {% endif %}
-        </td>
-		
-		<!-- % -->
-		<td><strong>{{ s.kode }}</strong>
-			{% if s.score > 15 %}
-				🔥 {{ s.score }}
-			{% elif s.score > 5 %}
-				👍 {{ s.score }}
-			{% else %}
-				⚠️ {{ s.score }}
-			{% endif %}
-		</td>
+                {% endif %}
+            </td>
 
-        <!-- % -->
-        <td>
-            {% if s.analisa == "BUY" %}
+            <!-- % -->
+            <td><strong>{{ s.kode }}</strong>
+                {% if s.score > 15 %}
+                🔥 {{ s.score }}
+                {% elif s.score > 5 %}
+                👍 {{ s.score }}
+                {% else %}
+                ⚠️ {{ s.score }}
+                {% endif %}
+            </td>
+
+            <!-- % -->
+            <td>
+                {% if s.analisa == "BUY" %}
                 <span style="color:blue;">{{ s.analisa }}</span>
-            {% elif s.analisa == "SELL" %}
+                {% elif s.analisa == "SELL" %}
                 <span style="color:green;">{{ s.analisa }}</span>
-            {% else %}
+                {% else %}
                 <span style="color:orange;">{{ s.analisa }}</span>
-            {% endif %}
-        </td>
-		<td><strong>{{ s.score }}</strong></td>
-    </tr>
-    {% endfor %}
-</table>
+                {% endif %}
+            </td>
+            <td><strong>{{ s.score }}</strong></td>
+        </tr>
+        {% endfor %}
+    </table>
 
-<h3>📊 Total Portfolio</h3>
-<p><a href="/log">📜 Lihat Histori</a> | 
-<a href="/import">📥 Import Excel</a> |
-<a href="/log">📜 Log</a> |
-<a href="/logout">🚪 Logout</a></p>
-<canvas id="chartTotal"></canvas>
+    <h3>📊 Total Portfolio</h3>
+    <p><a href="/log">📜 Lihat Histori</a> |
+        <a href="/import">📥 Import Excel</a> |
+        <a href="/log">📜 Log</a> |
+        <a href="/logout">🚪 Logout</a>
+    </p>
+    <canvas id="chartTotal"></canvas>
 
-<h3>📊 Grafik Modal (Invested)</h3>
-<canvas id="chartModal"></canvas>
+    <h3>📊 Grafik Modal (Invested)</h3>
+    <canvas id="chartModal"></canvas>
 
-<h3>📈 Grafik Harga Saham</h3>
-<canvas id="chartHarga"></canvas>
+    <h3>📈 Grafik Harga Saham</h3>
+    <canvas id="chartHarga"></canvas>
 
-<!-- # Grafik Total Portfolio -->
-<script>
-const ctxTotal = document.getElementById('chartTotal').getContext('2d');
+    <!-- # Grafik Total Portfolio -->
+    <script>
+        const ctxTotal = document.getElementById('chartTotal').getContext('2d');
 
-new Chart(ctxTotal, {
-    type: 'bar',
-    data: {
-        labels: ['Modal', 'Nilai Sekarang'],
-        datasets: [{
-            label: 'Total Portfolio',
-            data: [
-                {{ total_modal or 0 }},
+        new Chart(ctxTotal, {
+            type: 'bar',
+            data: {
+                labels: ['Modal', 'Nilai Sekarang'],
+                datasets: [{
+                    label: 'Total Portfolio',
+                    data: [
+                        {{ total_modal or 0 }},
                 {{ total_nilai or 0 }}
             ]
         }]
     },
-    options: {
-        scales: {
-            y: {
-                ticks: {
-                    callback: function(value) {
-                        return 'Rp ' + value.toLocaleString();
-                    }
-                }
-            }
-        }
-    }
-});
-</script>
-
-<!-- # Grafik Modal (Invested) -->
-<script>
-    const labelsModal = [
-        {% for s in saham %}
-            "{{ s.kode }}",
-        {% endfor %}
-    ];
-
-    const dataModal = [
-        {% for s in saham %}
-            {{ s.invested or 0 }},
-        {% endfor %}
-    ];
-
-    const ctxModal = document.getElementById('chartModal').getContext('2d');
-
-    new Chart(ctxModal, {
-        type: 'bar',
-        data: {
-            labels: labelsModal,
-            datasets: [{
-                label: 'Total Modal (Rp)',
-                data: dataModal
-            }]
-        },
-        options: {
+            options: {
             scales: {
                 y: {
                     ticks: {
-                        callback: function(value) {
+                        callback: function (value) {
                             return 'Rp ' + value.toLocaleString();
                         }
                     }
                 }
             }
         }
-    });
-</script>
+});
+    </script>
 
-<!-- # Grafik Harga Saham -->
-<script>
-    const labels = [
-        {% for s in saham %}
-            "{{ s.kode }}",
+    <!-- # Grafik Modal (Invested) -->
+    <script>
+        const labelsModal = [
+            {% for s in saham %}
+        "{{ s.kode }}",
+            {% endfor %}
+    ];
+
+        const dataModal = [
+            {% for s in saham %}
+        { { s.invested or 0 } },
         {% endfor %}
     ];
 
-    const dataHarga = [
-        {% for s in saham %}
-            {{ s.current or 0 }},
+        const ctxModal = document.getElementById('chartModal').getContext('2d');
+
+        new Chart(ctxModal, {
+            type: 'bar',
+            data: {
+                labels: labelsModal,
+                datasets: [{
+                    label: 'Total Modal (Rp)',
+                    data: dataModal
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function (value) {
+                                return 'Rp ' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+    <!-- # Grafik Harga Saham -->
+    <script>
+        const labels = [
+            {% for s in saham %}
+        "{{ s.kode }}",
+            {% endfor %}
+    ];
+
+        const dataHarga = [
+            {% for s in saham %}
+        { { s.current or 0 } },
         {% endfor %}
     ];
 
-const ctx = document.getElementById('chartHarga').getContext('2d');
+        const ctx = document.getElementById('chartHarga').getContext('2d');
 
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Harga Sekarang',
-                data: dataHarga
-            }]
-        }
-    });
-</script>
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Harga Sekarang',
+                    data: dataHarga
+                }]
+            }
+        });
+    </script>
 
 </body>
+
 </html>

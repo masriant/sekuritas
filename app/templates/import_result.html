@@ -1,0 +1,15 @@
+<h2>Hasil Import</h2>
+
+<p>✅ Berhasil: {{ success }}</p>
+<p>❌ Gagal: {{ failed }}</p>
+
+{% if errors %}
+<h3>Error Detail:</h3>
+<ul>
+    {% for e in errors %}
+    <li>{{ e }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<a href="/">⬅️ Kembali</a>
