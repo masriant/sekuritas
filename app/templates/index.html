@@ -17,6 +17,57 @@
     <button type="submit">Tambah</button>
 </form>
 
+<h2>🏆 Ranking Saham Terbaik (Top 5)</h2>
+<p>Total data ranking: {{ ranking|length }}</p>
+
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Rank</th>
+        <th>Kode</th>
+        <th>Profit %</th>
+        <th>Score</th>
+        <th>Signal</th>
+    </tr>
+
+    {% for s in ranking[:5] %}
+    <tr>
+        <td>{{ loop.index }}</td>
+        <td>
+            <a href="/saham/{{ s.kode }}"><strong>{{ s.kode }}</strong></a>
+        </td>
+        <td>
+            {% if s.persen >= 0 %}
+                <span style="color:green;">{{ s.persen }}%</span>
+            {% else %}
+                <span style="color:red;">{{ s.persen }}%</span>
+            {% endif %}
+        </td>
+        <td><strong>{{ s.score }}</strong></td>
+        <td>
+            {% if s.analisa == "BUY" %}
+                <span style="color:blue;">BUY</span>
+            {% elif s.analisa == "SELL" %}
+                <span style="color:red;">SELL</span>
+            {% else %}
+                <span style="color:orange;">HOLD</span>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<br>
+<h2>🚀 Rekomendasi Hari Ini: {{ best_buy|length }}</h2>
+
+<ul>
+{% for s in best_buy %}
+    <li>
+        🔥 <strong>{{ s.kode }}</strong> 
+        ({{ s.persen }}%) - {{ s.analisa }}
+    </li>
+{% endfor %}
+</ul>
+<br>
 <h2>🏆 Ranking Saham Terbaik</h2>
 <p>Login sebagai: {{ session.user }}</p>
 
@@ -94,8 +145,9 @@
         <th>Invested</th>
         <th>P&L</th>
         <th>%</th>
-		<th>📜 Histori</a></th>
+		<th>📜 Tech Score</th>
         <th>Analisa</th>
+		<th>Score</th>
     </tr>
 
     {% for s in saham %}
@@ -142,7 +194,15 @@
         </td>
 		
 		<!-- % -->
-		<td><a href="/log">📜 <strong>{{ s.kode }}</strong> </a></td>
+		<td><strong>{{ s.kode }}</strong>
+			{% if s.score > 15 %}
+				🔥 {{ s.score }}
+			{% elif s.score > 5 %}
+				👍 {{ s.score }}
+			{% else %}
+				⚠️ {{ s.score }}
+			{% endif %}
+		</td>
 
         <!-- % -->
         <td>
@@ -154,6 +214,7 @@
                 <span style="color:orange;">{{ s.analisa }}</span>
             {% endif %}
         </td>
+		<td><strong>{{ s.score }}</strong></td>
     </tr>
     {% endfor %}
 </table>

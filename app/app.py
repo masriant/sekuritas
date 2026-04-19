@@ -41,6 +41,49 @@ def get_harga_saham(kode):
     except:
         return 0
 
+def get_technical_score(kode):
+    try:
+        ticker = yf.Ticker(kode + ".JK")
+        hist = ticker.history(period="3mo")
+
+        if hist.empty:
+            return 0, "NO DATA"
+
+        # MA20
+        hist['MA20'] = hist['Close'].rolling(20).mean()
+
+        # RSI
+        delta = hist['Close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+        rs = gain / loss
+        hist['RSI'] = 100 - (100 / (1 + rs))
+
+        last = hist.iloc[-1]
+
+        score = 0
+        signal = "HOLD"
+
+        # RSI logic
+        if last['RSI'] < 30:
+            score += 10
+            signal = "BUY"
+        elif last['RSI'] > 70:
+            score -= 10
+            signal = "SELL"
+
+        # MA20 logic
+        if last['Close'] > last['MA20']:
+            score += 5
+        else:
+            score -= 5
+
+        return score, signal
+
+    except:
+        return 0, "ERROR"
+
+
 from flask import session
 
 @app.route("/")
@@ -123,16 +166,31 @@ def index():
 
     # ✅ BARU RANKING DI SINI
     # ranking = sorted(data, key=lambda x: x['score'], reverse=True)
+    
+   
 
     ranking = sorted(data, key=lambda x: x.get('score', 0), reverse=True)
+    
+    # 🎯 ambil rekomendasi BUY terbaik
+    best_buy = [s for s in ranking if s['analisa'] == "BUY"][:3]
+    
+    tech_score, tech_signal = get_technical_score(kode)
+
+    score += tech_score
+
+    # override analisa kalau lebih kuat
+    if tech_signal != "HOLD":
+        analisa = tech_signal
 
     return render_template(
         "index.html",
-        saham=data,
+        saham=ranking,
         ranking=ranking,
+        best_buy=best_buy,
         total_modal=total_modal,
         total_nilai=total_nilai,
         total_pl=total_pl
+        
     )
 
 
