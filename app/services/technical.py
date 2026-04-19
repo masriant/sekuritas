@@ -1,37 +1,52 @@
-# services/technical.py
 import yfinance as yf
+import time
 
 def analyze(kode):
-    try:
-        hist = yf.Ticker(kode + ".JK").history(period="3mo")
+    for i in range(2):  # retry 2x
+        try:
+            hist = yf.Ticker(kode + ".JK").history(period="3mo")
 
-        hist['MA20'] = hist['Close'].rolling(20).mean()
+            # ❗ VALIDASI DATA
+            if hist.empty or len(hist) < 20:
+                return 0, "NO DATA"
 
-        delta = hist['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+            # MA20
+            hist['MA20'] = hist['Close'].rolling(20).mean()
 
-        rs = gain / loss
-        hist['RSI'] = 100 - (100 / (1 + rs))
+            # RSI
+            delta = hist['Close'].diff()
 
-        last = hist.iloc[-1]
+            gain = delta.clip(lower=0).rolling(14).mean()
+            loss = -delta.clip(upper=0).rolling(14).mean()
 
-        score = 0
-        signal = "HOLD"
+            # hindari division by zero
+            rs = gain / loss.replace(0, 1e-10)
 
-        if last['RSI'] < 30:
-            score += 10
-            signal = "BUY"
-        elif last['RSI'] > 70:
-            score -= 10
-            signal = "SELL"
+            hist['RSI'] = 100 - (100 / (1 + rs))
 
-        if last['Close'] > last['MA20']:
-            score += 5
-        else:
-            score -= 5
+            last = hist.iloc[-1]
 
-        return score, signal
+            score = 0
+            signal = "HOLD"
 
-    except:
-        return 0, "ERROR"
+            # RSI logic
+            if last['RSI'] < 30:
+                score += 10
+                signal = "BUY"
+            elif last['RSI'] > 70:
+                score -= 10
+                signal = "SELL"
+
+            # MA20 logic
+            if last['Close'] > last['MA20']:
+                score += 5
+            else:
+                score -= 5
+
+            return score, signal
+
+        except Exception as e:
+            print(f"Error analyze {kode}: {e}")
+            time.sleep(1)
+
+    return 0, "ERROR"
